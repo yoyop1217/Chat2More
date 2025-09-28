@@ -1,4 +1,4 @@
-name: Sync to HuggingFace
+name: Sync HF folder to Hugging Face Space
 
 on:
   push:
@@ -10,13 +10,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Upload to HuggingFace Hub
-        uses: huggingface/huggingface_hub@main
+        uses: actions/checkout@v3
         with:
+          fetch-depth: 0
+
+      - name: Debug - list repo files
+        run: |
+          echo "📂 Repository structure:"
+          ls -R
+
+      - name: Use only HF folder
+        run: |
+          if [ ! -d "HF" ]; then
+            echo "❌ HF 資料夾不存在，請確認路徑"
+            exit 1
+          fi
+          # 先清空工作目錄，再把 HF 的內容搬到根目錄
+          rm -rf ./* .[^.]*
+          cp -r HF/* ./
+          echo "✅ Copied HF folder to root"
+          ls -la
+
+      - name: Set up Git
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Commit HF folder only
+        run: |
+          git add .
+          git commit -m "Deploy only HF folder" || echo "No changes to commit"
+
+      - name: Push to Hugging Face
+        env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          repo_id: "yoyop1217/Chat2More"
-          repo_type: "space"
-          local_dir: "./HF"
-          commit_message: "Sync from GitHub"
+        run: |
+          git remote add space https://user:$HF_TOKEN@huggingface.co/spaces/yoyop1217/Chat2More
+          git push --force space main
