@@ -16,8 +16,11 @@ jobs:
 
       - name: Copy only HF folder
         run: |
+          mkdir temp
+          cp -r HF/* temp/
           rm -rf ./* .[^.]*
-          cp -r HF* ./
+          cp -r temp/* ./
+          rm -rf temp
           ls -la
 
       - name: Set up Git
