@@ -29,7 +29,7 @@ jobs:
           git init
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          git remote add space https://user:$HF_TOKEN@huggingface.co/spaces/ELECAR00/complex-chat-demo
+          git remote add space https://user:$HF_TOKEN@huggingface.co/spaces/yoyop1217/Chat2More
           git checkout -b main
           git add .
           git commit -m "Deploy HF folder only"
