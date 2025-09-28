@@ -1,7 +1,7 @@
 ---
 title: Chat2More
 emoji: 🔥
-colorFrom: yello
+colorFrom: yellow
 colorTo: blue
 sdk: gradio
 sdk_version: 5.0.1
