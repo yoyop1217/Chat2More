@@ -4,7 +4,17 @@ from DEF import test_api_connection, test_single_model, rewrite_batch
 
 model_list = list(STIMA_MODELS.keys())
 
-with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More") as demo:
+custom_css = """
+.markdown-output {
+    border: 2px solid #4a90e2; /* 藍色底框 */
+    border-radius: 5px; /* 圓角效果 */
+    padding: 10px; /* 內邊距 */
+    background-color: #f9f9f9; /* 淺灰色背景 */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 輕微陰影 */
+}
+"""
+
+with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More", css=custom_css) as demo:
     gr.Markdown("# 📝 比較多種模型的輸出結果（with StimaAPI）")
     gr.Markdown("---")
     gr.Markdown("""
@@ -17,7 +27,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More") as demo:
     # API 連線測試區域
     with gr.Accordion("🔧 API 測試工具", open=False):
         test_btn = gr.Button("測試 API 連線")
-        test_result = gr.Markdown(label="測試結果")  # 改用 gr.Markdown
+        test_result = gr.Markdown(label="測試結果", elem_classes=["markdown-output"])
         test_btn.click(test_api_connection, outputs=[test_result])
     
     # 主要功能區域
@@ -65,9 +75,9 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More") as demo:
     btn = gr.Button("🌟 開始查詢", variant="primary")
 
     with gr.Row():
-        out1 = gr.Markdown(label="模型 1 輸出")  # 改用 gr.Markdown
-        out2 = gr.Markdown(label="模型 2 輸出")  # 改用 gr.Markdown
-        out3 = gr.Markdown(label="模型 3 輸出")  # 改用 gr.Markdown
+        out1 = gr.Markdown(label="模型 1 輸出", elem_classes=["markdown-output"])
+        out2 = gr.Markdown(label="模型 2 輸出", elem_classes=["markdown-output"])
+        out3 = gr.Markdown(label="模型 3 輸出", elem_classes=["markdown-output"])
 
     # 單一模型測試
     with gr.Accordion("🔧 單一模型測試", open=False):
@@ -76,7 +86,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More") as demo:
             test_model = gr.Dropdown(model_list, value=model_list[0] if model_list else "", label="測試模型")
         
         single_test_btn = gr.Button("測試單一模型")
-        single_result = gr.Markdown(label="單一模型測試結果")  # 改用 gr.Markdown
+        single_result = gr.Markdown(label="單一模型測試結果", elem_classes=["markdown-output"])
         single_test_btn.click(
             test_single_model,
             inputs=[test_text, test_model, sys_prompt, temp],
