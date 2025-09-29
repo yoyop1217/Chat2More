@@ -46,7 +46,7 @@ async def rewrite_once(model_key, text, system_prompt, temp):
         ]
         
         print(f"[{datetime.now()}] 呼叫模型: {full_id}")
-        print(f"[{datetime.now()]] 訊息內容: {messages}")
+        print(f"[{datetime.now()}] 訊息內容: {messages}")
         
         # Called API（分段處理與顯示）
         try:
@@ -210,6 +210,7 @@ def test_api_connection():
         return asyncio.run(_test())
     except Exception as e:
         return f"連線測試執行錯誤: {type(e).__name__}\n{str(e)}"
+
 
 
 
