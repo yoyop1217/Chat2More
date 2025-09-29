@@ -3,6 +3,7 @@
 # ✨✨Chat2More
 
 [![Built with Stima API](https://img.shields.io/badge/Built%20with-Stima%20API-blueviolet?logo=robot)](https://api.stima.tech)
+[![Hugging Face Space](https://img.shields.io/badge/Space-%20demo-yellow?logo=huggingface)](https://huggingface.co/spaces/yoyop1217/Chat2More)
 
 </div>
 
