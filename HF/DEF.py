@@ -27,19 +27,21 @@ def get_client():
         timeout=TIMEOUT
     )
 
-# 2-2. Rewrite（實現分段生成與分段顯示）
+# 2-2. Rewrite（修復為異步生成器）
 async def rewrite_once(model_key, text, system_prompt, temp):
     try:
         if not text or not text.strip():
-            return "⚠️ 請輸入文字"
+            yield "⚠️ 請輸入文字"  # 改為 yield
+            return
         
         if model_key not in STIMA_MODELS:
-            return f"⚠️ 找不到模型 {model_key}"
+            yield f"⚠️ 找不到模型 {model_key}"  # 改為 yield
+            return
         
         _, full_id = STIMA_MODELS[model_key]
         client = get_client()
         
-        # Build Messages（優化為分段生成提示）
+        # Build Messages
         messages = [
             {"role": "system", "content": system_prompt or "You are a helpful assistant. Respond concisely in valid Markdown format. For long responses, provide a summary first, then continue with details on request."},
             {"role": "user", "content": text}
@@ -48,9 +50,9 @@ async def rewrite_once(model_key, text, system_prompt, temp):
         print(f"[{datetime.now()}] 呼叫模型: {full_id}")
         print(f"[{datetime.now()}] 訊息內容: {messages}")
         
-        # Called API（分段處理與顯示）
+        # Called API
         try:
-            # 檢測是否為深研模型，調整參數
+            # 檢測是否為 Gemini 或深研模型，調整參數
             is_deep_research = "sonar-pro" in full_id.lower() or "deep-research" in full_id.lower()
             response_format = {"type": "text"} if "gemini" in full_id.lower() else None
             max_tokens_per_call = 500  # 每次分段生成 500 token
@@ -79,7 +81,8 @@ async def rewrite_once(model_key, text, system_prompt, temp):
                     try:
                         resp_data = json.loads(resp)
                         if 'error' in resp_data:
-                            return f"⚠️ API 錯誤：{resp_data['error']}"
+                            yield f"⚠️ API 錯誤：{resp_data['error']}"  # 改為 yield
+                            return
                         new_content = resp_data.get('choices', [{}])[0].get('message', {}).get('content', resp) or ""
                     except json.JSONDecodeError:
                         cleaned_resp = re.sub(r'<[^>]+>', '', resp) if 're' in globals() else resp
@@ -111,7 +114,7 @@ async def rewrite_once(model_key, text, system_prompt, temp):
                 if len(new_content.split()) < max_tokens_per_call or "summary" in content.lower() or "end" in content.lower():
                     break
             
-            # 最終返回完整內容（可選，確保最後顯示）
+            # 最終返回完整內容
             if content.strip():
                 yield f"**完整回應**：\n{content.strip()}"
             else:
@@ -210,6 +213,7 @@ def test_api_connection():
         return asyncio.run(_test())
     except Exception as e:
         return f"連線測試執行錯誤: {type(e).__name__}\n{str(e)}"
+
 
 
 
