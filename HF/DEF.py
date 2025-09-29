@@ -27,23 +27,21 @@ def get_client():
         timeout=TIMEOUT
     )
 
-# 2-2. Rewrite（添加臨時文件清理）
+# 2-2. Rewrite
 async def rewrite_once(model_key, text, system_prompt, temp):
     try:
         if not text or not text.strip():
-            yield "⚠️ 請輸入文字"
-            return
+            return "⚠️ 請輸入文字"
         
         if model_key not in STIMA_MODELS:
-            yield f"⚠️ 找不到模型 {model_key}"
-            return
+            return f"⚠️ 找不到模型 {model_key}"
         
         _, full_id = STIMA_MODELS[model_key]
         client = get_client()
         
         # Build Messages
         messages = [
-            {"role": "system", "content": system_prompt or "You are a helpful assistant. Respond concisely in valid Markdown format. For long responses, provide a summary first, then continue with details on request."},
+            {"role": "system", "content": system_prompt or "You are a helpful assistant. Respond in valid Markdown format."},
             {"role": "user", "content": text}
         ]
         
@@ -52,155 +50,106 @@ async def rewrite_once(model_key, text, system_prompt, temp):
         
         # Called API
         try:
-            # 檢測是否為 Gemini 或深研模型，調整參數
-            is_deep_research = "sonar-pro" in full_id.lower() or "deep-research" in full_id.lower()
+            # 檢測是否為 Gemini 模型，強制文字格式
             response_format = {"type": "text"} if "gemini" in full_id.lower() else None
-            max_tokens_per_call = 500  # 每次分段生成 500 token
-            timeout = 90 if not is_deep_research else 120  # 深研模型增加超時
             
-            content = ""
-            current_messages = messages.copy()
-            first_segment = True
+            resp = await client.chat.completions.create(
+                model=full_id,
+                messages=messages,
+                temperature=temp,
+                max_tokens=9000,
+                timeout=90
+            )
             
-            while True:
-                resp = await client.chat.completions.create(
-                    model=full_id,
-                    messages=[{"role": "system", "content": "Continue the previous response or provide a summary if starting."}, *current_messages],
-                    temperature=temp,
-                    max_tokens=max_tokens_per_call,
-                    timeout=timeout,
-                    response_format=response_format
-                )
-                
-                print(f"[{datetime.now()}] API 回應類型: {type(resp)}")
-                print(f"[{datetime.now()}] API 回應內容: {resp}")
-                
-                # 處理回應並逐步返回
-                new_content = ""
-                if isinstance(resp, str):
-                    try:
-                        resp_data = json.loads(resp)
-                        if 'error' in resp_data:
-                            yield f"⚠️ API 錯誤：{resp_data['error']}"
-                            return
-                        new_content = resp_data.get('choices', [{}])[0].get('message', {}).get('content', resp) or ""
-                    except json.JSONDecodeError:
-                        cleaned_resp = re.sub(r'<[^>]+>', '', resp) if 're' in globals() else resp
-                        new_content = cleaned_resp.strip() or ""
-                elif hasattr(resp, 'choices') and resp.choices:
-                    choice = resp.choices[0]
-                    if hasattr(choice, 'message') and hasattr(choice.message, 'content'):
-                        new_content = choice.message.content.strip()
-                        # 更新 messages 為下次續寫
-                        current_messages = [
-                            {"role": "system", "content": "Continue the previous response."},
-                            {"role": "user", "content": new_content}
-                        ]
-                    else:
-                        break
-                else:
-                    break
-                
-                if new_content:
-                    content += new_content
-                    # 逐步返回分段內容並清理
-                    if first_segment:
-                        yield f"**摘要或開始**：\n{new_content}"
-                        first_segment = False
-                    else:
-                        yield f"**續寫**：\n{new_content}"
-                    # 清理臨時文件（每次分段後）
-                    if os.path.exists("temp_log.txt"):
-                        os.remove("temp_log.txt")
-                
-                # 檢查是否為完整回應
-                if len(new_content.split()) < max_tokens_per_call or "summary" in content.lower() or "end" in content.lower():
-                    break
+            print(f"[{datetime.now()}] API 回應類型: {type(resp)}")
+            print(f"[{datetime.now()}] API 回應內容: {resp}")
             
-            # 最終返回完整內容並清理
-            if content.strip():
-                yield f"**完整回應**：\n{content.strip()}"
-            else:
-                yield "⚠️ 回應生成中斷"
-            # 最終清理
-            if os.path.exists("temp_log.txt"):
-                os.remove("temp_log.txt")
+            # Check the return
+            if isinstance(resp, str):
+                try:
+                    resp_data = json.loads(resp)
+                    if 'error' in resp_data:
+                        return f"⚠️ API 錯誤：{resp_data['error']}"
+                    return f"⚠️ 未預期的字串回應：{resp}"
+                except json.JSONDecodeError:
+                    # 若非 JSON，假設為純文字內容，直接返回（Gemini 常見)
+                    # 清理可能的 HTML 或多餘標記**
+                    cleaned_resp = re.sub(r'<[^>]+>', '', resp) if 're' in globals() else resp  # 簡單 HTML 移除
+                    return f"**Gemini 回應**：\n{cleaned_resp.strip()}" if cleaned_resp.strip() else f"**⚠️ 無法解析的回應**：{resp}"
+                    return f"⚠️ 無法解析的回應：{resp}"
+            
+            if not hasattr(resp, 'choices'):
+                return f"⚠️ API 回應格式不正確 (缺少 choices)\n回應類型: {type(resp)}\n回應內容: {str(resp)}"
+            
+            if not resp.choices or len(resp.choices) == 0:
+                return "⚠️ API 回應中沒有選項"
+            
+            choice = resp.choices[0]
+            if not hasattr(choice, 'message'):
+                return f"⚠️ API 回應格式不正確 (缺少 message)\n選項內容: {str(choice)}"
+            
+            message = choice.message
+            if not hasattr(message, 'content'):
+                return f"⚠️ API 回應格式不正確 (缺少 content)\n訊息內容: {str(message)}"
+            
+            # Get Content
+            content = message.content
+            if content is None:
+                return "⚠️ 模型回應為空"
+            
+            return content.strip()
             
         except openai.APIConnectionError as e:
-            yield f"⚠️ 連線錯誤：無法連接到 API 服務\n詳細：{str(e)}"
-            if os.path.exists("temp_log.txt"):
-                os.remove("temp_log.txt")
+            return f"⚠️ 連線錯誤：無法連接到 API 服務\n詳細：{str(e)}"
         except openai.RateLimitError as e:
-            yield f"⚠️ 速率限制：API 請求過於頻繁\n詳細：{str(e)}"
-            if os.path.exists("temp_log.txt"):
-                os.remove("temp_log.txt")
+            return f"⚠️ 速率限制：API 請求過於頻繁\n詳細：{str(e)}"
         except openai.APIStatusError as e:
-            if e.status_code == 504:
-                yield f"⚠️ 閘道超時 (504)：上游伺服器延遲，請稍後重試或分段查詢\n- 詳細：{str(e)}"
-            else:
-                yield f"⚠️ API 錯誤 (狀態碼 {e.status_code})：{e.message}\n詳細：{str(e)}"
-            if os.path.exists("temp_log.txt"):
-                os.remove("temp_log.txt")
+            return f"⚠️ API 錯誤 (狀態碼 {e.status_code})：{e.message}\n詳細：{str(e)}"
         except openai.APITimeoutError as e:
-            yield f"⚠️ 超時錯誤：API 回應時間過長，請縮短 prompt 或分段查詢\n詳細：{str(e)}"
-            if os.path.exists("temp_log.txt"):
-                os.remove("temp_log.txt")
+            return f"⚠️ 超時錯誤：API 回應時間過長\n詳細：{str(e)}"
         except httpx.ConnectError as e:
-            yield f"⚠️ 網路連線錯誤：無法連接到伺服器\n詳細：{str(e)}"
-            if os.path.exists("temp_log.txt"):
-                os.remove("temp_log.txt")
+            return f"⚠️ 網路連線錯誤：無法連接到伺服器\n詳細：{str(e)}"
         except httpx.TimeoutException as e:
-            yield f"⚠️ 網路超時：請求超時\n詳細：{str(e)}"
-            if os.path.exists("temp_log.txt"):
-                os.remove("temp_log.txt")
+            return f"⚠️ 網路超時：請求超時\n詳細：{str(e)}"
         except Exception as e:
             error_detail = traceback.format_exc()
-            yield f"⚠️ API 呼叫錯誤：{type(e).__name__}\n錯誤：{str(e)}\n\n詳細追蹤:\n{error_detail}"
-            if os.path.exists("temp_log.txt"):
-                os.remove("temp_log.txt")
+            return f"⚠️ API 呼叫錯誤：{type(e).__name__}\n錯誤：{str(e)}\n\n詳細追蹤:\n{error_detail}"
             
     except Exception as e:
         error_detail = traceback.format_exc()
-        yield f"⚠️ 未預期的錯誤：{type(e).__name__}\n{str(e)}\n\n詳細資訊:\n{error_detail}"
-        if os.path.exists("temp_log.txt"):
-            os.remove("temp_log.txt")
+        return f"⚠️ 未預期的錯誤：{type(e).__name__}\n{str(e)}\n\n詳細資訊:\n{error_detail}"
 
-# 2-3. Batch Rewrite（支持分段顯示）
-async def rewrite_batch(text, model1, model2, model3, sys_prompt, temp):
+# 2-3. Batch Rewrite
+def rewrite_batch(text, model1, model2, model3, sys_prompt, temp):
     if not text or not text.strip():
-        yield ("請輸入要改寫的文字", "請輸入要改寫的文字", "請輸入要改寫的文字")
-        return
+        return ("請輸入要改寫的文字", "請輸入要改寫的文字", "請輸入要改寫的文字")
     
-    async def process_model(model_key, index):
-        try:
-            async for segment in rewrite_once(model_key, text, sys_prompt, temp):
-                yield index, segment
-        except Exception as e:
-            error_msg = f"模型 {model_key} 執行錯誤：\n{type(e).__name__}\n{str(e)}"
-            yield index, error_msg
+    async def _run():
+        tasks = [
+            rewrite_once(model1, text, sys_prompt, temp),
+            rewrite_once(model2, text, sys_prompt, temp),
+            rewrite_once(model3, text, sys_prompt, temp)
+        ]
+        
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        processed_results = []
+        model_names = [model1, model2, model3]
+        
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                error_msg = f"模型 {model_names[i]} 執行錯誤：\n{type(result).__name__}\n{str(result)}"
+                processed_results.append(error_msg)
+            else:
+                processed_results.append(result)
+        
+        return processed_results
     
-    # 並行處理三個模型
-    tasks = [
-        process_model(model1, 0),
-        process_model(model2, 1),
-        process_model(model3, 2)
-    ]
-    
-    # 追蹤每個模型的最新段落
-    outputs = ["", "", ""]
-    async for updates in asyncio.gather(*tasks):
-        for index, segment in updates:
-            if segment:
-                outputs[index] = segment
-                yield (gr.Markdown.update(value=outputs[0]),
-                       gr.Markdown.update(value=outputs[1]),
-                       gr.Markdown.update(value=outputs[2]))
-    
-    # 最終確保所有輸出完成
-    yield (gr.Markdown.update(value=outputs[0]),
-           gr.Markdown.update(value=outputs[1]),
-           gr.Markdown.update(value=outputs[2]))
-
+    try:
+        return asyncio.run(_run())
+    except Exception as e:
+        error_msg = f"批次執行錯誤：{type(e).__name__}\n{str(e)}"
+        return (error_msg, error_msg, error_msg)
 
 # 2-4. Test Single Model
 def test_single_model(text, model_key, sys_prompt, temp):
@@ -235,10 +184,5 @@ def test_api_connection():
         return asyncio.run(_test())
     except Exception as e:
         return f"連線測試執行錯誤: {type(e).__name__}\n{str(e)}"
-
-
-
-
-
 
 
