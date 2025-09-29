@@ -57,8 +57,8 @@ async def rewrite_once(model_key, text, system_prompt, temp):
                 model=full_id,
                 messages=messages,
                 temperature=temp,
-                max_tokens=2000,
-                timeout=60
+                max_tokens=70000,
+                timeout=120
             )
             
             print(f"[{datetime.now()}] API 回應類型: {type(resp)}")
@@ -184,5 +184,6 @@ def test_api_connection():
         return asyncio.run(_test())
     except Exception as e:
         return f"連線測試執行錯誤: {type(e).__name__}\n{str(e)}"
+
 
 
