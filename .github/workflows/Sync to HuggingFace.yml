@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'HF/**'  # 只在 HF 資料夾及其子檔案變動時觸發
 
 jobs:
   deploy:
