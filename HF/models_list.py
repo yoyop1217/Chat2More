@@ -217,7 +217,7 @@ STIMA_MODELS = {
     ## Paid
     "Perplexity / Sonar Reasoning Pro" : ("stima", "sonar-reasoning-pro"),
     "Perplexity / Sonar Pro"           : ("stima", "sonar-pro"),
-    "Perplexity / Sonar Deep Research" : ("stima", "sonar-deep-research"),
+    #"Perplexity / Sonar Deep Research" : ("stima", "sonar-deep-research"),
     #"Perplexity / R1 1776"             : ("stima", "perplexity-r1-1776"),
     "Perplexity / Sonar Reasoning"     : ("stima", "sonar-reasoning"),
     "Perplexity / Sonar"               : ("stima", "sonar"),
