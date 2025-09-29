@@ -4,23 +4,28 @@ from DEF import test_api_connection, test_single_model, rewrite_batch
 
 model_list = list(STIMA_MODELS.keys())
 
-# 擴展 CSS，添加滾動與高度自適應
+# 更新 CSS，改為白色底框與淺藍邊框
 custom_css = """
 .markdown-output {
-    border: 2px solid #4a90e2; /* 淺藍色底框 */
+    border: 2px solid #E6F7FF; /* 淺藍色邊框 */
     border-radius: 5px; /* 圓角效果 */
     padding: 10px; /* 內邊距 */
-    background-color: #E6F7FF; /* 淺灰色背景 */
+    background-color: #ffffff; /* 純白色背景 */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 輕微陰影 */
     max-height: 600px; /* 最大高度，超過時滾動 */
     overflow-y: auto; /* 垂直滾動條 */
     resize: vertical; /* 允許用戶手動調整高度 */
 }
+
+/* 確保外層容器不生成額外滾動條 */
+.gr-row {
+    overflow: hidden; /* 阻止外層滾動 */
+    height: auto; /* 自動適應內部高度 */
+}
 """
 
 with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More", css=custom_css) as demo:
     gr.Markdown("# 📝 比較多種模型的輸出結果（with StimaAPI）")
-    gr.Markdown("### 📝 一次比較三種模型的輸出結果")
     gr.Markdown("---")
     gr.Markdown("""
     ⚠️ **注意事項：**
@@ -35,7 +40,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More", css=custom_css) as d
         test_result = gr.Markdown(
             label="測試結果", 
             elem_classes=["markdown-output"],
-            max_height=300  # 明確設定最大高度，支援滾動
+            max_height=300
         )
         test_btn.click(test_api_connection, outputs=[test_result])
     
@@ -60,7 +65,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More", css=custom_css) as d
         label="Temperature (0=保守, 1=創意)"
     )
     
-    with gr.Row():
+    with gr.Row(elem_classes=["gr-row"]):
         default_idx1 = min(0, len(model_list) - 1)
         default_idx2 = min(21, len(model_list) - 1)
         default_idx3 = min(82, len(model_list) - 1)
@@ -83,11 +88,11 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More", css=custom_css) as d
 
     btn = gr.Button("🌟 開始查詢", variant="primary")
 
-    with gr.Row():
+    with gr.Row(elem_classes=["gr-row"]):
         out1 = gr.Markdown(
             label="模型 1 輸出", 
             elem_classes=["markdown-output"],
-            max_height=600  # 明確設定最大高度，超過時滾動
+            max_height=600
         )
         out2 = gr.Markdown(
             label="模型 2 輸出", 
@@ -102,7 +107,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More", css=custom_css) as d
 
     # 單一模型測試
     with gr.Accordion("🔧 單一模型測試", open=False):
-        with gr.Row():
+        with gr.Row(elem_classes=["gr-row"]):
             test_text = gr.Textbox(label="測試文字", value="Hello, how are you?")
             test_model = gr.Dropdown(model_list, value=model_list[0] if model_list else "", label="測試模型")
         
@@ -110,7 +115,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More", css=custom_css) as d
         single_result = gr.Markdown(
             label="單一模型測試結果", 
             elem_classes=["markdown-output"],
-            max_height=400  # 明確設定最大高度
+            max_height=400
         )
         single_test_btn.click(
             test_single_model,
