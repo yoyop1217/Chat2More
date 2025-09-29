@@ -6,6 +6,25 @@ model_list = list(STIMA_MODELS.keys())
 
 with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More") as demo:
     gr.Markdown("# 📝 比較多種模型的輸出結果（with StimaAPI）")
+
+with gr.Blocks(theme=gr.themes.Soft(), title="Chat-API") as demo:
+    gr.Markdown("### 📝 一次比較三種模型的輸出結果")
+
+    gr.Markdown("---")
+
+    gr.Markdown("""
+    ⚠️ **注意事項：**
+    - 使用前先使用 **🔧 API 測試工具** 測試 API_Key 可用性，確認尚有額度，若有錯誤，請至[ITHome文章頁面](https://ithelp.ithome.com.tw/articles/10391018)回報
+    - 部分模型可能需要較長回應時間，請耐心等待
+    - 鑒於 Stima API 部分模型不太穩定，若使用時有報錯，可至 **🔧 單一模型測試** 檢查是否為單一模型問題
+    """)
+    
+    # 加入 API 狀態檢查
+    # API 連線測試區域
+    with gr.Accordion("🔧 API 測試工具", open=False):
+        test_btn = gr.Button("測試 API 連線")
+        test_result = gr.Textbox(label="測試結果", lines=5)
+        test_btn.click(test_api_connection, outputs=[test_result])
     
     # 主要功能區域
     src = gr.Textbox(
@@ -30,9 +49,9 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More") as demo:
     
     with gr.Row():
         # 
-        default_idx1 = min(4, len(model_list)-1) if len(model_list) > 4 else 0
-        default_idx2 = min(41, len(model_list)-1) if len(model_list) > 41 else min(1, len(model_list)-1)
-        default_idx3 = min(151, len(model_list)-1) if len(model_list) > 151 else min(2, len(model_list)-1)
+        default_idx1 = 0
+        default_idx2 = 21
+        default_idx3 = 82
         
         dd1 = gr.Dropdown(
             model_list, 
@@ -56,3 +75,18 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More") as demo:
         out1 = gr.Textbox(label="模型 1 輸出", lines=20)
         out2 = gr.Textbox(label="模型 2 輸出", lines=20)
         out3 = gr.Textbox(label="模型 3 輸出", lines=20)
+
+    # 單一模型測試
+    with gr.Accordion("🔧 單一模型測試", open=False):
+        # 單一模型測試
+        with gr.Row():
+            test_text = gr.Textbox(label="測試文字", value="Hello, how are you?")
+            test_model = gr.Dropdown(model_list, value=model_list[0] if model_list else "", label="測試模型")
+        
+        single_test_btn = gr.Button("測試單一模型")
+        single_result = gr.Textbox(label="單一模型測試結果", lines=8)
+        single_test_btn.click(
+            test_single_model,
+            inputs=[test_text, test_model, gr.Textbox(value=""), gr.Slider(value=0.7)],
+            outputs=[single_result]
+        )
