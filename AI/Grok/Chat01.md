@@ -3675,3 +3675,115 @@ out1 = gr.Markdown(label="模型 1 輸出", elem_classes=["markdown-output"], ma
 - **建議**：先測試 5000 token，逐步增加，同時監控效能與 API 回饋。
 
 請部署更新後的 `DEF.py`，測試 Gemini 的長篇回應，並分享日誌或截圖，我將根據結果進一步優化！（當前時間：2025年9月29日下午3:09 EDT）
+
+# Q16：我的 Action 這樣設定，但我發現只要 repo 有變動他就會傳一次，可以設定成只有 HF 資料夾裡面的資瞭變動才上傳嗎
+```yml
+name: Sync HF folder to Hugging Face Space
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Debug - list repo files
+        run: |
+          echo "📂 Repository root:"
+          ls -la
+          echo "📂 HF folder:"
+          ls -la HF || echo "⚠️ HF is missing or empty"
+
+      - name: Push HF folder to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          cd HF
+          git init
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git remote add space https://user:$HF_TOKEN@huggingface.co/spaces/yoyop1217/Chat2More
+          git checkout -b main
+          git add .
+          git commit -m "Deploy HF folder only"
+          git push --force space main
+```
+
+# A16：HF 資料夾在 GitHub 的脈動中悄然甦醒
+### 序章：變動的低語，HF 資料夾在 GitHub 的脈動中悄然甦醒
+
+在 GitHub 的虛擬工坊中，你的 repository 如一座古老的圖書館，書架上陳列著代碼的卷軸與配置的密卷，每一次 push 都如風吹過頁緣，掀起細微的顫動。原本的 workflow 如一位忠實的守門人，每當 main 分支的任何角落有絲毫變動——無論是 README 的標題微調，或是無關的註解增添——它便立刻甦醒，cd 至 HF 資料夾，初始化 git，添加檔案，commit 那句「Deploy HF folder only」，然後推送到 Hugging Face Space 的雲端堡壘。畫面中，Actions 的日誌如溪流般滾動：Checkout repository，Debug - list repo files，Push HF folder to Hugging Face，一切順暢卻多餘。用戶的指尖在瀏覽器中滑過，眉頭微微皺起，心想為何無關的變動也要觸發這場儀式？HF 資料夾如一位沉睡的貴族，靜靜守候真正的召喚——只有當它的內裡有變動時，才該披上 git 的披風，穿越網路的絲線，抵達 Space 的殿堂。
+
+想像那無謂的觸發瞬間：你輕觸 commit，一個無關的 .gitignore 行尾多了一個空格，push 至 main，然後 Actions 面板亮起綠光，運行 30 秒，HF 資料夾被無端拉取、commit、推送，儘管它絲毫未變。日誌中，「📂 HF folder:」顯示空蕩的列表，卻仍舊執行 git add .，彷彿一場空洞的舞蹈，浪費了計算的脈動與網路的低語。這不是 bug 的錯亂，而是觸發的廣闊——on: push: branches: - main 捕捉了整個分支的每一次心跳，無視變動的源頭，讓 workflow 如過度警覺的哨兵，頻繁甦醒卻無所作為。HF 資料夾的邊緣在這重複中微微疲憊，等待一場精準的召喚：只有當它的子檔案——如 app.py 的行尾逗號，或 DEF.py 的註解增添——被觸碰時，才該展開這場部署的華爾滋。
+
+### 第一幕：根源的探尋，觸發的幽靈在 YAML 的陰影中遊蕩
+
+問題的淵源隱藏在 workflow YAML 的開端，如一條潛伏的暗流，on: push: 的廣闊懷抱無條件擁抱 main 分支的每一次變動。GitHub Actions 的默認行為如一位不挑剔的聽眾，無論變動來自 repo 的根部、.github/workflows 的密卷，或是無關的 docs 資料夾，它都會響應，運行 jobs: deploy 的全套儀式。你的 debug 步驟已捕捉到這一刻：ls -la HF 顯示「⚠️ HF is missing or empty」，卻仍舊 cd HF，git init，push --force，那強迫的旗幟如一記無情的鞭策，讓 Space 的分支在無變動中重置。
+
+在這斷層的邊緣，用戶的體驗如墜入重複的迴圈：每次 push 後，Actions 面板湧現新運行，綠光閃爍卻空洞，HF 資料夾的 git 歷史堆積無謂的 commit，Space 的更新如鏡花水月，頻繁卻無實質。這是觸發的宿命：缺少 paths 過濾器，讓 workflow 如一網打盡的漁夫，捕捉了所有魚群，卻浪費了線與鉤。GitHub 的文檔如一本泛黃的古籍，低語著解決之道：在 on: push: 下注入 paths: - 'HF/**'，這如一道精準的符咒，只在 HF 資料夾及其子孫有變動時，才喚醒守門人，讓儀式僅為真正需要者而舞。
+
+### 第二幕：解咒的儀式，YAML 的細針在觸發邊界上輕柔刺繡
+
+要讓 workflow 如一位敏銳的偵探，只在 HF 資料夾的脈動中甦醒，我們需重繪 YAML 的開端，注入 paths 過濾器，如一劑精準的靈藥，讓觸發的絲線僅纏繞目標。以下是重塑的 workflow YAML，細膩描摹每一步的轉變：
+
+```yaml
+name: Sync HF folder to Hugging Face Space
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'HF/**'  # 只在 HF 資料夾及其子檔案變動時觸發
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Debug - list repo files
+        run: |
+          echo "📂 Repository root:"
+          ls -la
+          echo "📂 HF folder:"
+          ls -la HF || echo "⚠️ HF is missing or empty"
+
+      - name: Push HF folder to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          cd HF
+          git init
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git remote add space https://user:$HF_TOKEN@huggingface.co/spaces/yoyop1217/Chat2More
+          git checkout -b main
+          git add .
+          git commit -m "Deploy HF folder only"
+          git push --force space main
+```
+
+在這段 YAML 的脈絡中，每一個新增的行如一枚隱形的鎖：paths: - 'HF/**' 捕捉了 HF 資料夾的每一個子脈動——app.py 的逗號增添、DEF.py 的註解低語、models_list.py 的清單擴展——卻忽略 repo 其他角落的風吹草動。當你 push 一個無關的 README 變動時，workflow 靜默如沉睡的守門人，Actions 面板無新光影；但當 HF 的內裡有絲毫顫動時，它甦醒，debug 的 ls -la 顯示變動的痕跡，git add . 僅捕捉真正的新生，push 的旗幟如精準的箭矢，直達 Space 的堡壘。'HF/**' 的通配符如一張細密的網，涵蓋所有子資料夾與檔案，確保無一遺漏，卻不越界。
+
+若需更細膩的過濾——例如僅 HF/app.py 的變動——可擴展為 paths: - 'HF/app.py'，但 'HF/**' 如一位包容的長者，守護整個 HF 的領域。
+
+### 第三幕：試煉的餘波，觸發的絲線在 push 的指尖輕舞
+
+部署後的 workflow 將如新生：當無關的 commit 掠過 main 分支時，它低頭靜默，節省了計算的脈動與網路的低語；當 HF 的子檔案被觸碰時，儀式展開，Checkout 的低吟，Debug 的清點，Push 的華爾滋，一切精準而高效。用戶的視線滑過 Actions 面板，只見綠光在真正需要時閃爍，HF 資料夾的 git 歷史如一卷純淨的日記，無無謂的頁面，Space 的更新如鏡中真實，頻率適中卻充滿力量。
+
+若這符咒仍有餘韻——或許 paths 的通配符在某些子資料夾中遲疑，或是 workflow 檔案自身變動觸發意外——試試在 paths 中注入 - '.github/workflows/**'，讓它包容自身，讓偵探永不自盲。GitHub 的文檔如低語的導師，確認此過濾器在 push 事件中如絲般順滑。
+
+### 尾聲：精準的召喚，在 repo 的脈動中永不浪費
+
+如今，你的工坊已從廣闊的擁抱中蛻變，workflow 如一位精準的舞者，只在 HF 資料夾的節奏中旋轉，邀請真正的變動者共舞。若仍有低語殘留，帶來新的日誌或觸發的截圖，我將繼續細描這場轉變，直至每一次 push 都如詩般精煉。
