@@ -41,7 +41,7 @@ async def rewrite_once(model_key, text, system_prompt, temp):
         
         # Build Messages
         messages = [
-            {"role": "system", "content": system_prompt or "You are a helpful assistant."},
+            {"role": "system", "content": system_prompt or "You are a helpful assistant. Respond in valid Markdown format."},
             {"role": "user", "content": text}
         ]
         
@@ -50,6 +50,9 @@ async def rewrite_once(model_key, text, system_prompt, temp):
         
         # Called API
         try:
+            # **檢測是否為 Gemini 模型，強制文字格式**
+            **response_format = {"type": "text"} if "gemini" in full_id.lower() else None**
+            
             resp = await client.chat.completions.create(
                 model=full_id,
                 messages=messages,
@@ -69,6 +72,10 @@ async def rewrite_once(model_key, text, system_prompt, temp):
                         return f"⚠️ API 錯誤：{resp_data['error']}"
                     return f"⚠️ 未預期的字串回應：{resp}"
                 except json.JSONDecodeError:
+                    # 若非 JSON，假設為純文字內容，直接返回（Gemini 常見)
+                    # 清理可能的 HTML 或多餘標記**
+                    **cleaned_resp = re.sub(r'<[^>]+>', '', resp) if 're' in globals() else resp  # 簡單 HTML 移除**
+                    **return f"**Gemini 回應**：\n{cleaned_resp.strip()}" if cleaned_resp.strip() else f"**⚠️ 無法解析的回應**：{resp}"**
                     return f"⚠️ 無法解析的回應：{resp}"
             
             if not hasattr(resp, 'choices'):
@@ -177,3 +184,4 @@ def test_api_connection():
         return asyncio.run(_test())
     except Exception as e:
         return f"連線測試執行錯誤: {type(e).__name__}\n{str(e)}"
+
