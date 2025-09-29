@@ -128,7 +128,6 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More", css=custom_css) as d
         fn=rewrite_batch,  # 使用已更新的 async 生成器
         inputs=[src, dd1, dd2, dd3, sys_prompt, temp],
         outputs=[out1, out2, out3],
-        _js="() => { console.log('Processing...'); alert('處理中，內容將分段顯示'); }"  # 提示用戶
     )
 
 if __name__ == "__main__":
