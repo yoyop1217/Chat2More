@@ -167,6 +167,8 @@ def test_api_connection():
     
     try:
         return asyncio.run(_test())
+    except Exception as e:
+        return f"連線測試執行錯誤: {type(e).__name__}\n{str(e)}"
 
 # 4️⃣ Test Singel model
 def test_single_model(text, model_key, sys_prompt, temp):
@@ -181,8 +183,5 @@ def test_single_model(text, model_key, sys_prompt, temp):
     except Exception as e:
         error_detail = traceback.format_exc()
         return f"測試執行錯誤：{type(e).__name__}\n{str(e)}\n\n詳細資訊:\n{error_detail}"
-    except Exception as e:
-        return f"連線測試執行錯誤: {type(e).__name__}\n{str(e)}"
-
 
 
