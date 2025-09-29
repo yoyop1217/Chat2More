@@ -6,7 +6,6 @@ model_list = list(STIMA_MODELS.keys())
 
 with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More") as demo:
     gr.Markdown("# 📝 比較多種模型的輸出結果（with StimaAPI）")
-    gr.Markdown("### 📝 一次比較三種模型的輸出結果")
     gr.Markdown("---")
     gr.Markdown("""
     ⚠️ **注意事項：**
@@ -20,6 +19,20 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More") as demo:
         test_btn = gr.Button("測試 API 連線")
         test_result = gr.Textbox(label="測試結果", lines=5)
         test_btn.click(test_api_connection, outputs=[test_result])
+
+    # 單一模型測試
+    with gr.Accordion("🔧 單一模型測試", open=False):
+        with gr.Row():
+            test_text = gr.Textbox(label="測試文字", value="Hello, how are you?")
+            test_model = gr.Dropdown(model_list, value=model_list[0] if model_list else "", label="測試模型")
+        
+        single_test_btn = gr.Button("測試單一模型")
+        single_result = gr.Textbox(label="單一模型測試結果", lines=8)
+        single_test_btn.click(
+            test_single_model,
+            inputs=[test_text, test_model, sys_prompt, temp],
+            outputs=[single_result]
+        )
     
     # 主要功能區域
     src = gr.Textbox(
@@ -69,20 +82,6 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More") as demo:
         out1 = gr.Textbox(label="模型 1 輸出", lines=20)
         out2 = gr.Textbox(label="模型 2 輸出", lines=20)
         out3 = gr.Textbox(label="模型 3 輸出", lines=20)
-
-    # 單一模型測試
-    with gr.Accordion("🔧 單一模型測試", open=False):
-        with gr.Row():
-            test_text = gr.Textbox(label="測試文字", value="Hello, how are you?")
-            test_model = gr.Dropdown(model_list, value=model_list[0] if model_list else "", label="測試模型")
-        
-        single_test_btn = gr.Button("測試單一模型")
-        single_result = gr.Textbox(label="單一模型測試結果", lines=8)
-        single_test_btn.click(
-            test_single_model,
-            inputs=[test_text, test_model, sys_prompt, temp],
-            outputs=[single_result]
-        )
 
     # 綁定主要查詢按鈕
     btn.click(
