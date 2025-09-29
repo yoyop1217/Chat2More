@@ -11,7 +11,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More") as demo:
     ⚠️ **注意事項：**
     - 使用前先使用 **🔧 API 測試工具** 測試 API_Key 可用性，確認尚有額度，若有錯誤，請至[ITHome文章頁面](https://ithelp.ithome.com.tw/articles/10391018)回報
     - 部分模型可能需要較長回應時間，請耐心等待
-    - 鑒於 Stima API 部分模型不太穩定，若使用時有報錯，可至 **🔧 單一模型測試** 檢查是否為單一模型問題
+    - 鑒於 Stima API 部分模型不太穩定，若使用時有報錯，可至最下方 **🔧 單一模型測試** 檢查是否為單一模型問題
     """)
     
     # API 連線測試區域
@@ -19,20 +19,6 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More") as demo:
         test_btn = gr.Button("測試 API 連線")
         test_result = gr.Textbox(label="測試結果", lines=5)
         test_btn.click(test_api_connection, outputs=[test_result])
-
-    # 單一模型測試
-    with gr.Accordion("🔧 單一模型測試", open=False):
-        with gr.Row():
-            test_text = gr.Textbox(label="測試文字", value="Hello, how are you?")
-            test_model = gr.Dropdown(model_list, value=model_list[0] if model_list else "", label="測試模型")
-        
-        single_test_btn = gr.Button("測試單一模型")
-        single_result = gr.Textbox(label="單一模型測試結果", lines=8)
-        single_test_btn.click(
-            test_single_model,
-            inputs=[test_text, test_model, sys_prompt, temp],
-            outputs=[single_result]
-        )
     
     # 主要功能區域
     src = gr.Textbox(
@@ -82,6 +68,20 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Chat-2-More") as demo:
         out1 = gr.Textbox(label="模型 1 輸出", lines=20)
         out2 = gr.Textbox(label="模型 2 輸出", lines=20)
         out3 = gr.Textbox(label="模型 3 輸出", lines=20)
+
+    # 單一模型測試
+    with gr.Accordion("🔧 單一模型測試", open=False):
+        with gr.Row():
+            test_text = gr.Textbox(label="測試文字", value="Hello, how are you?")
+            test_model = gr.Dropdown(model_list, value=model_list[0] if model_list else "", label="測試模型")
+        
+        single_test_btn = gr.Button("測試單一模型")
+        single_result = gr.Textbox(label="單一模型測試結果", lines=8)
+        single_test_btn.click(
+            test_single_model,
+            inputs=[test_text, test_model, sys_prompt, temp],
+            outputs=[single_result]
+        )
 
     # 綁定主要查詢按鈕
     btn.click(
