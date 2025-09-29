@@ -6,7 +6,6 @@ import httpx
 from openai import AsyncOpenAI
 import traceback
 import json
-
 from models_list import STIMA_MODELS
 
 
@@ -170,4 +169,5 @@ def test_api_connection():
         return asyncio.run(_test())
     except Exception as e:
         return f"連線測試執行錯誤: {type(e).__name__}\n{str(e)}"
+
 
