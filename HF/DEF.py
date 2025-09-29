@@ -167,7 +167,22 @@ def test_api_connection():
     
     try:
         return asyncio.run(_test())
+
+# 4️⃣ Test Singel model
+def test_single_model(text, model_key, sys_prompt, temp):
+    if not text or not text.strip():
+        return "請輸入測試文字"
+    
+    async def _test():
+        return await rewrite_once(model_key, text, sys_prompt, temp)
+    
+    try:
+        return asyncio.run(_test())
+    except Exception as e:
+        error_detail = traceback.format_exc()
+        return f"測試執行錯誤：{type(e).__name__}\n{str(e)}\n\n詳細資訊:\n{error_detail}"
     except Exception as e:
         return f"連線測試執行錯誤: {type(e).__name__}\n{str(e)}"
+
 
 
