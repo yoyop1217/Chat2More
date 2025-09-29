@@ -27,15 +27,15 @@ def get_client():
         timeout=TIMEOUT
     )
 
-# 2-2. Rewrite（修復為異步生成器）
+# 2-2. Rewrite（添加臨時文件清理）
 async def rewrite_once(model_key, text, system_prompt, temp):
     try:
         if not text or not text.strip():
-            yield "⚠️ 請輸入文字"  # 改為 yield
+            yield "⚠️ 請輸入文字"
             return
         
         if model_key not in STIMA_MODELS:
-            yield f"⚠️ 找不到模型 {model_key}"  # 改為 yield
+            yield f"⚠️ 找不到模型 {model_key}"
             return
         
         _, full_id = STIMA_MODELS[model_key]
@@ -81,7 +81,7 @@ async def rewrite_once(model_key, text, system_prompt, temp):
                     try:
                         resp_data = json.loads(resp)
                         if 'error' in resp_data:
-                            yield f"⚠️ API 錯誤：{resp_data['error']}"  # 改為 yield
+                            yield f"⚠️ API 錯誤：{resp_data['error']}"
                             return
                         new_content = resp_data.get('choices', [{}])[0].get('message', {}).get('content', resp) or ""
                     except json.JSONDecodeError:
@@ -103,45 +103,67 @@ async def rewrite_once(model_key, text, system_prompt, temp):
                 
                 if new_content:
                     content += new_content
-                    # 逐步返回分段內容
+                    # 逐步返回分段內容並清理
                     if first_segment:
                         yield f"**摘要或開始**：\n{new_content}"
                         first_segment = False
                     else:
                         yield f"**續寫**：\n{new_content}"
+                    # 清理臨時文件（每次分段後）
+                    if os.path.exists("temp_log.txt"):
+                        os.remove("temp_log.txt")
                 
                 # 檢查是否為完整回應
                 if len(new_content.split()) < max_tokens_per_call or "summary" in content.lower() or "end" in content.lower():
                     break
             
-            # 最終返回完整內容
+            # 最終返回完整內容並清理
             if content.strip():
                 yield f"**完整回應**：\n{content.strip()}"
             else:
                 yield "⚠️ 回應生成中斷"
+            # 最終清理
+            if os.path.exists("temp_log.txt"):
+                os.remove("temp_log.txt")
             
         except openai.APIConnectionError as e:
             yield f"⚠️ 連線錯誤：無法連接到 API 服務\n詳細：{str(e)}"
+            if os.path.exists("temp_log.txt"):
+                os.remove("temp_log.txt")
         except openai.RateLimitError as e:
             yield f"⚠️ 速率限制：API 請求過於頻繁\n詳細：{str(e)}"
+            if os.path.exists("temp_log.txt"):
+                os.remove("temp_log.txt")
         except openai.APIStatusError as e:
             if e.status_code == 504:
                 yield f"⚠️ 閘道超時 (504)：上游伺服器延遲，請稍後重試或分段查詢\n- 詳細：{str(e)}"
             else:
                 yield f"⚠️ API 錯誤 (狀態碼 {e.status_code})：{e.message}\n詳細：{str(e)}"
+            if os.path.exists("temp_log.txt"):
+                os.remove("temp_log.txt")
         except openai.APITimeoutError as e:
             yield f"⚠️ 超時錯誤：API 回應時間過長，請縮短 prompt 或分段查詢\n詳細：{str(e)}"
+            if os.path.exists("temp_log.txt"):
+                os.remove("temp_log.txt")
         except httpx.ConnectError as e:
             yield f"⚠️ 網路連線錯誤：無法連接到伺服器\n詳細：{str(e)}"
+            if os.path.exists("temp_log.txt"):
+                os.remove("temp_log.txt")
         except httpx.TimeoutException as e:
             yield f"⚠️ 網路超時：請求超時\n詳細：{str(e)}"
+            if os.path.exists("temp_log.txt"):
+                os.remove("temp_log.txt")
         except Exception as e:
             error_detail = traceback.format_exc()
             yield f"⚠️ API 呼叫錯誤：{type(e).__name__}\n錯誤：{str(e)}\n\n詳細追蹤:\n{error_detail}"
+            if os.path.exists("temp_log.txt"):
+                os.remove("temp_log.txt")
             
     except Exception as e:
         error_detail = traceback.format_exc()
         yield f"⚠️ 未預期的錯誤：{type(e).__name__}\n{str(e)}\n\n詳細資訊:\n{error_detail}"
+        if os.path.exists("temp_log.txt"):
+            os.remove("temp_log.txt")
 
 # 2-3. Batch Rewrite（支持分段顯示）
 async def rewrite_batch(text, model1, model2, model3, sys_prompt, temp):
@@ -213,6 +235,7 @@ def test_api_connection():
         return asyncio.run(_test())
     except Exception as e:
         return f"連線測試執行錯誤: {type(e).__name__}\n{str(e)}"
+
 
 
 
